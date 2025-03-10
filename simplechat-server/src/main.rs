@@ -1,4 +1,12 @@
-use std::{io::Read, net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream}};
+use std::{
+    io::Read,
+     net::{
+        IpAddr,
+        Ipv4Addr,
+        SocketAddr,
+        TcpListener,
+        TcpStream}
+    };
 
 struct AppState {
     bind_port: u16,
@@ -12,7 +20,7 @@ fn start_server(bind_port: u16, bind_addr: IpAddr) -> TcpListener {
     let result = TcpListener::bind(&addr);
     let listener = match result {
         Ok(listener) => listener,
-        Err(error) => panic!("Could not bind to given address: {error:?}"),
+        Err(error) => panic!("[ERROR] Could not bind to given address: {error}"),
     };
     listener
 }
@@ -25,7 +33,7 @@ fn receive_data(buffer: &[u8;512], size: usize) {
 }
 
 fn handle_connection(mut stream: TcpStream, address: SocketAddr) {
-    println!("Accepted connection from {address}");
+    println!("[INFO] Accepted connection from {address}");
     let mut buf = [0;512];
     match stream.read(&mut buf) {
         Ok(read_bytes) => receive_data(&buf, read_bytes),
@@ -35,17 +43,17 @@ fn handle_connection(mut stream: TcpStream, address: SocketAddr) {
 
 fn main() {
     let addr = Ipv4Addr::new(127, 0, 0, 1);
-    println!("Starting SimpleChat server...");
+    println!("[INFO] Starting SimpleChat server...");
     let app_state: AppState = AppState {
                                     bind_port: 21000,
                                     bind_addr: IpAddr::V4(addr)                                   
                                 };
     let listener = start_server(app_state.bind_port, app_state.bind_addr);
-    println!("Listening for connections");
+    println!("[INFO] Listening for connections");
     loop {
         match listener.accept() {
             Ok((stream, addr)) => handle_connection(stream, addr),
-            Err(error) => println!("Failed accepting client connection: {error:?}"),
+            Err(error) => println!("[ERROR] Failed accepting client connection: {error:?}"),
         }
     }
 }
