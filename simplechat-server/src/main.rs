@@ -7,10 +7,19 @@ use std::{
         TcpListener,
         TcpStream}
     };
+use serde_json::from_str;
+use serde::{Deserialize, Serialize};
 
 struct AppState {
     bind_port: u16,
     bind_addr: IpAddr
+}
+
+#[derive(Deserialize, Serialize)]
+struct Message {
+    user: String,
+    message: String,
+    channel: String
 }
 
 // start the SimpleChat server on the provided port and address
@@ -25,10 +34,17 @@ fn start_server(bind_port: u16, bind_addr: IpAddr) -> TcpListener {
     listener
 }
 
+fn broadcast_message(message: Message) {
+    println!("{}", message.message);
+}
+
 fn receive_data(buffer: &[u8;512], size: usize) {
     if size > 0 {
         let data = String::from_utf8_lossy(&buffer[..size]);
-        print!("{data}");
+        match from_str(&data) {
+            Ok(message) => broadcast_message(message),
+            Err(e) => println!("[ERROR] Could not parse message from client: {e}")
+        };
     }
 }
 
