@@ -14,18 +14,31 @@ use serde::{Deserialize, Serialize};
 // types and structs
 pub type ClientsCollection = Arc<Mutex<HashMap<String, ClientConnection>>>;
 
-#[derive(Deserialize, Serialize)]
-struct Message {
-    user: String,
-    message: String,
-    channel: String
-}
-
 pub struct ClientConnection {
     // holds the client's TCP connection and channels
     // they are interested in
     stream: TcpStream,
     channels: Vec<String>
+}
+
+#[derive(Deserialize, Serialize)]
+struct Message {
+    message_type: String,
+    user: String,
+    message: String,
+    channel: String
+}
+
+#[derive(Deserialize, Serialize)]
+struct ChannelSettingsMessage {
+    message_type: String,
+    channel: String
+}
+
+enum ClientMessage {
+    // enum for different types of messages coming from clients
+    Message(Message),
+    ChannelSettingsMessage(ChannelSettingsMessage)
 }
 
 // public interface
@@ -79,6 +92,7 @@ fn handle_message(message: &String,
         // checking if we have "message"-field -> it is a message
         if message_value["message"] != Value::Null {
             broadcast_message(Message {
+                message_type: "message".to_string(),
                 message: message_value["message"].to_string(),
                 user: message_value["user"].to_string(),
                 channel: message_value["channel"].to_string()
@@ -111,5 +125,11 @@ fn broadcast_message(message: Message,
                 Err(_) => println!("[ERROR] failed to broadcast message"),
             }
         }
+    }
+}
+
+fn get_message_object(message_value: Value) -> ClientMessage {
+    if message_value["message_type"] == "message" {
+         
     }
 }
