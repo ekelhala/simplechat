@@ -8,7 +8,7 @@ use std::sync::{
 };
 use std::collections::HashMap;
 
-use serde_json::{from_str, json, to_string, to_value, Value};
+use serde_json::{from_str, to_string, Value};
 use serde::{Deserialize, Serialize};
 
 // types and structs
@@ -84,7 +84,7 @@ fn handle_message(message: &String,
                 channel: message_value["channel"].to_string()
             }, clients_lock, my_addr);
         }
-        // if we have "channels"-field -> user wants to set channels
+        // if we have "channel"-field -> user wants to set channels
         else if message_value["channel"] != Value::Null {
             let client: &mut ClientConnection = clients_lock.get_mut(my_addr).unwrap();
             client.channels.push(message_value["channel"].to_string());
