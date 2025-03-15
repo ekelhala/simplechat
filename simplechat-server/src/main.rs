@@ -1,28 +1,17 @@
 mod server;
 mod clients;
+mod config_parser;
 
-use std::{collections::HashMap, net::{
-        IpAddr,
-        Ipv4Addr
-    }, sync::{Arc, Mutex}, thread};
+use std::{collections::HashMap, sync::{Arc, Mutex}, thread};
 
 use clients::ClientsCollection;
 
-struct AppState {
-    bind_port: u16,
-    bind_addr: IpAddr
-}
-
 fn main() {
     println!("[INFO] Starting SimpleChat server...");
-    let addr = Ipv4Addr::new(127, 0, 0, 1);
     let clients:ClientsCollection = Arc::new(Mutex::new(HashMap::new()));
-    let app_state: AppState = AppState {
-                                    bind_port: 21000,
-                                    bind_addr: IpAddr::V4(addr)                                   
-                                };
-    let listener = server::start_server(app_state.bind_port, app_state.bind_addr);
-    println!("[INFO] Listening for connections");
+    let config = config_parser::load_config();
+    let listener = server::start_server(config.server.bind_port, config.server.bind_interface);
+    println!("[INFO] Listening for connections at {}", config.server.bind_interface);
     loop {
         match listener.accept() {
             Ok((stream, _addr)) => {

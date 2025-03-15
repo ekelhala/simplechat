@@ -1,0 +1,4 @@
+[server]
+bind_interface = "127.0.0.1"
+bind_port = 21000
+max_clients = 10
