@@ -8,7 +8,7 @@ use std::sync::{
 };
 use std::collections::HashMap;
 
-use serde_json::{from_str, to_string, Value};
+use serde_json::{from_str, from_value, to_string, Value};
 use serde::{Deserialize, Serialize};
 
 // types and structs
@@ -25,7 +25,7 @@ pub struct ClientConnection {
 struct Message {
     message_type: String,
     user: String,
-    message: String,
+    data: String,
     channel: String
 }
 
@@ -33,12 +33,6 @@ struct Message {
 struct ChannelSettingsMessage {
     message_type: String,
     channel: String
-}
-
-enum ClientMessage {
-    // enum for different types of messages coming from clients
-    Message(Message),
-    ChannelSettingsMessage(ChannelSettingsMessage)
 }
 
 // public interface
@@ -81,41 +75,40 @@ fn handle_message(message: &String,
                   mut clients_lock: MutexGuard<HashMap<String, ClientConnection>>, 
                   my_addr: &String) {
 
-    let message_value: Value = match from_str(message) {
-        Ok(value) => value,
-        Err(e) => {
-            println!("Could not parse client message: {}", e);
-            Value::Null
+    match from_str(message) {
+        Ok(value) => {
+            match get_message_type(&value) {
+                Some(client_message_type) => {
+                    if client_message_type == "message" {
+                        // parse Message
+                        match from_value(value) {
+                            Ok(message) => broadcast_message(message, clients_lock, my_addr),
+                            Err(e) => println!("[ERROR] Got invalid Message: {}", e)
+                        }
+                    }
+                    else if client_message_type == "add_channel" {
+                        // parse ChannelSettingsMessage
+                        match from_value(value) {
+                            Ok(channel_settings_message) => {
+                                let client = clients_lock.get_mut(my_addr).unwrap();
+                                add_channel_to_connection(channel_settings_message, client);
+                            },
+                            Err(e) => println!("[ERROR] Got invalid ChannelSettingsMessage: {}", e)
+                        }
+                    }
+                }
+                None => println!("[ERROR]: Got invalid message: {}", value.to_string())
+            }
         }
-    };
-    if message_value != Value::Null {
-        // checking if we have "message"-field -> it is a message
-        if message_value["message"] != Value::Null {
-            broadcast_message(Message {
-                message_type: "message".to_string(),
-                message: message_value["message"].to_string(),
-                user: message_value["user"].to_string(),
-                channel: message_value["channel"].to_string()
-            }, clients_lock, my_addr);
-        }
-        // if we have "channel"-field -> user wants to set channels
-        else if message_value["channel"] != Value::Null {
-            let client: &mut ClientConnection = clients_lock.get_mut(my_addr).unwrap();
-            client.channels.push(message_value["channel"].to_string());
-
-        }
-        // if none of the above -> invalid message
-        else {
-            println!("[ERROR]: Got invalid message: {}", message_value.to_string());
-        }
+    Err(e) => println!("[ERROR] Could not parse client message: {}", e)
     }
 }
 
-fn broadcast_message(message: Message, 
+fn broadcast_message(message: Message,
                      clients_lock: MutexGuard<HashMap<String, ClientConnection>>,
                      my_addr: &String) {
     
-    println!("Got message {} from user {}", message.message, message.user);
+    println!("Got message {} from user {}", message.data, message.user);
     let payload = to_string(&message).unwrap();
     let bytes = payload.as_bytes();
     for (client_addr, client_connection) in clients_lock.iter() {
@@ -128,8 +121,15 @@ fn broadcast_message(message: Message,
     }
 }
 
-fn get_message_object(message_value: Value) -> ClientMessage {
-    if message_value["message_type"] == "message" {
-         
+fn get_message_type(message_value: &Value) -> Option<String> {
+    let message_type = message_value["message_type"].as_str().unwrap();
+    if message_type == "message" || message_type == "add_channel" {
+        let msg = message_value["message_type"].as_str();
+        return Some(msg.unwrap().to_string());
     }
+    None
+}
+
+fn add_channel_to_connection(channel_message: ChannelSettingsMessage, client_connection: &mut ClientConnection) {
+    client_connection.channels.push(channel_message.channel);
 }

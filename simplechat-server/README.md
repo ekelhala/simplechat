@@ -10,6 +10,7 @@ When a client wishes to join a channel, they must send a JSON-payload like this:
 
 ```json
 {
+    "message_type": "add_channel",
     "channel": "<channel name>"
 }
 ```
@@ -20,6 +21,7 @@ When sending a message, client supplies their username, message and channel:
 
 ```json
 {
+    "message_type": "message",
     "message": "<message text>",
     "channel": "<channel name>",
     "user": "<user name>"
