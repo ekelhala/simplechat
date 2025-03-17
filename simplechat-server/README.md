@@ -10,7 +10,18 @@ When a client wishes to join a channel, they must send a JSON-payload like this:
 
 ```json
 {
-    "message_type": "add_channel",
+    "message_type": "join_channel",
+    "channel": "<channel name>"
+}
+```
+
+**Unsubscribing a channel**
+
+When a client wants to stop receving messages from a channel, the following payload needs to be sent:
+
+```json
+{
+    "message_type": "leave_channel",
     "channel": "<channel name>"
 }
 ```

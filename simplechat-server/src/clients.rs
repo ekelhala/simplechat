@@ -2,6 +2,7 @@
 
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
+use std::ops::Index;
 use std::sync::{
     Arc,
     Mutex, MutexGuard
@@ -86,12 +87,17 @@ fn handle_message(message: &String,
                             Err(e) => println!("[ERROR] Got invalid Message: {}", e)
                         }
                     }
-                    else if client_message_type == "add_channel" {
+                    else if client_message_type == "join_channel" || client_message_type == "leave_channel" {
                         // parse ChannelSettingsMessage
                         match from_value(value) {
                             Ok(channel_settings_message) => {
                                 let client = clients_lock.get_mut(my_addr).unwrap();
-                                add_channel_to_connection(channel_settings_message, client);
+                                if client_message_type == "join_channel" {
+                                    add_channel_to_connection(channel_settings_message, client);
+                                }
+                                else {
+                                    remove_channel_from_connection(channel_settings_message, client);
+                                }
                             },
                             Err(e) => println!("[ERROR] Got invalid ChannelSettingsMessage: {}", e)
                         }
@@ -123,7 +129,7 @@ fn broadcast_message(message: Message,
 
 fn get_message_type(message_value: &Value) -> Option<String> {
     let message_type = message_value["message_type"].as_str().unwrap();
-    if message_type == "message" || message_type == "add_channel" {
+    if message_type == "message" || message_type == "join_channel" || message_type == "leave_channel" {
         let msg = message_value["message_type"].as_str();
         return Some(msg.unwrap().to_string());
     }
@@ -132,4 +138,9 @@ fn get_message_type(message_value: &Value) -> Option<String> {
 
 fn add_channel_to_connection(channel_message: ChannelSettingsMessage, client_connection: &mut ClientConnection) {
     client_connection.channels.push(channel_message.channel);
+}
+
+fn remove_channel_from_connection(channel_message: ChannelSettingsMessage, client_connection: &mut ClientConnection) {
+    let index = client_connection.channels.binary_search(&channel_message.channel).unwrap();
+    client_connection.channels.swap_remove(index);
 }
