@@ -2,7 +2,6 @@
 
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
-use std::ops::Index;
 use std::sync::{
     Arc,
     Mutex, MutexGuard
@@ -14,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 // types and structs
 pub type ClientsCollection = Arc<Mutex<HashMap<String, ClientConnection>>>;
+const MESSAGE_TYPES: [&str; 3] = ["message", "join_channel", "leave_channel"];
 
 pub struct ClientConnection {
     // holds the client's TCP connection and channels
@@ -129,7 +129,7 @@ fn broadcast_message(message: Message,
 
 fn get_message_type(message_value: &Value) -> Option<String> {
     let message_type = message_value["message_type"].as_str().unwrap();
-    if message_type == "message" || message_type == "join_channel" || message_type == "leave_channel" {
+    if MESSAGE_TYPES.contains(&message_type) {
         let msg = message_value["message_type"].as_str();
         return Some(msg.unwrap().to_string());
     }
